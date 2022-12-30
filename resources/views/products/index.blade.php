@@ -7,14 +7,20 @@
 
 
 	<div class="card">
-		<form action="" method="get" class="card-header">
+		<form action="{{ route('filter-products') }}" method="post" class="card-header">
+			@csrf
 			<div class="form-row justify-content-between">
 				<div class="col-md-2">
 					<input type="text" name="title" placeholder="Product Title" class="form-control">
 				</div>
+
 				<div class="col-md-2">
 					<select name="variant" id="" class="form-control">
+						<option value="" selected>Select a variant</option>
 
+						@foreach ($product_variants as $item)
+							<option value="{{ $item->id }}">{{ $item->variant }}</option>
+						@endforeach
 					</select>
 				</div>
 
@@ -136,8 +142,8 @@
 				</div>
 			</div> --}}
 
-			<div class="row justify-content-between">
-				<div class="col-md-6">
+			<div class="row px-3 justify-content-between">
+				<div class="">
 					<p>
 						Showing {{ $showing > $total ? $total : $showing }}
 						to
@@ -146,7 +152,7 @@
 						{{ $total }}
 					</p>
 				</div>
-				<div class="col-md-2">
+				<div class="">
 					{{ $products->links() }}
 				</div>
 			</div>
