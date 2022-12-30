@@ -17,7 +17,11 @@ class ProductController extends Controller
      */
     public function index()
     {
-        return view('products.index');
+        // return view('products.index');
+
+        $data['products'] = Product::with(['prices'])->paginate(2);
+
+        return view('products.index', $data);
     }
 
     /**
@@ -39,7 +43,6 @@ class ProductController extends Controller
      */
     public function store(Request $request)
     {
-
     }
 
 
@@ -51,7 +54,6 @@ class ProductController extends Controller
      */
     public function show($product)
     {
-
     }
 
     /**
