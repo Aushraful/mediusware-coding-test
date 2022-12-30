@@ -16,10 +16,14 @@
 
 				<div class="col-md-2">
 					<select name="variant" id="" class="form-control">
-						<option value="" selected>Select a variant</option>
+						<option value="" selected>-- Select a variant --</option>
 
-						@foreach ($product_variants as $item)
-							<option value="{{ $item->id }}">{{ $item->variant }}</option>
+						@foreach ($product_variants as $variantId => $variants)
+							<optgroup label="{{ $variants[0]->variant_title }}">
+								@foreach ($variants as $variant)
+									<option value="{{ $variant->id }}">{{ $variant->variant }}</option>
+								@endforeach
+							</optgroup>
 						@endforeach
 					</select>
 				</div>

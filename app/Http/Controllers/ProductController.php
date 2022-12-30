@@ -26,7 +26,11 @@ class ProductController extends Controller
         $data['to'] = $data['products']->perPage() * $data['products']->currentPage();
         $data['total'] = $data['products']->total();
 
-        $data['product_variants'] = ProductVariant::all();
+        // $data['product_variants'] = ProductVariant::all();
+        $data['product_variants'] = ProductVariant::join('variants', 'product_variants.variant_id', '=', 'variants.id')
+            ->select('product_variants.*', 'variants.title as variant_title')
+            ->get()
+            ->groupBy('variant_id');
 
         return view('products.index', $data);
     }
@@ -42,7 +46,11 @@ class ProductController extends Controller
 
         $variant_price = [$price_from, $price_to, $variant];
 
-        $data['product_variants'] = ProductVariant::all();
+        // $data['product_variants'] = ProductVariant::all();
+        $data['product_variants'] = ProductVariant::join('variants', 'product_variants.variant_id', '=', 'variants.id')
+            ->select('product_variants.*', 'variants.title as variant_title')
+            ->get()
+            ->groupBy('variant_id');
 
         try {
             $data['products'] = Product::with('prices')
