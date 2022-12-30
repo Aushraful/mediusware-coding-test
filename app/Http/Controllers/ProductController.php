@@ -21,6 +21,10 @@ class ProductController extends Controller
 
         $data['products'] = Product::with(['prices'])->paginate(2);
 
+        $data['showing'] = $data['products']->perPage() * ($data['products']->currentPage() - 1) + 1;
+        $data['to'] = $data['products']->perPage() * $data['products']->currentPage();
+        $data['total'] = $data['products']->total();
+
         return view('products.index', $data);
     }
 
