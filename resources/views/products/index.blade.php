@@ -147,7 +147,7 @@
 					</p>
 				</div>
 				<div class="col-md-2">
-
+					{{ $products->links() }}
 				</div>
 			</div>
 		</div>
