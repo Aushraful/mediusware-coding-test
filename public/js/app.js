@@ -1930,10 +1930,20 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var vue_input_tag__WEBPACK_IMPORTED_MODULE_3___default = /*#__PURE__*/__webpack_require__.n(vue_input_tag__WEBPACK_IMPORTED_MODULE_3__);
 
 
+var _methods;
+
+function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+
 function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { Promise.resolve(value).then(_next, _throw); } }
 
 function _asyncToGenerator(fn) { return function () { var self = this, args = arguments; return new Promise(function (resolve, reject) { var gen = fn.apply(self, args); function _next(value) { asyncGeneratorStep(gen, resolve, reject, _next, _throw, "next", value); } function _throw(err) { asyncGeneratorStep(gen, resolve, reject, _next, _throw, "throw", err); } _next(undefined); }); }; }
 
+//
+//
+//
+//
+//
+//
 //
 //
 //
@@ -2126,13 +2136,24 @@ function _asyncToGenerator(fn) { return function () { var self = this, args = ar
     variants: {
       type: Array,
       required: true
+    },
+    mode: {
+      type: String,
+      // specify the type of the prop
+      "default": "create" // set a default value
+
+    },
+    product: {
+      type: Object
     }
   },
   data: function data() {
+    var _this$product$title, _this$product, _this$product$sku, _this$product2, _this$product$descrip, _this$product3;
+
     return {
-      product_name: "",
-      product_sku: "",
-      description: "",
+      product_name: (_this$product$title = (_this$product = this.product) === null || _this$product === void 0 ? void 0 : _this$product.title) !== null && _this$product$title !== void 0 ? _this$product$title : "",
+      product_sku: (_this$product$sku = (_this$product2 = this.product) === null || _this$product2 === void 0 ? void 0 : _this$product2.sku) !== null && _this$product$sku !== void 0 ? _this$product$sku : "",
+      description: (_this$product$descrip = (_this$product3 = this.product) === null || _this$product3 === void 0 ? void 0 : _this$product3.description) !== null && _this$product$descrip !== void 0 ? _this$product$descrip : "",
       images: [],
       product_variant: [{
         option: this.variants[0].id,
@@ -2147,10 +2168,11 @@ function _asyncToGenerator(fn) { return function () { var self = this, args = ar
           "My-Awesome-Header": "header value"
         }
       },
-      errors: {}
+      errors: {},
+      resource: {}
     };
   },
-  methods: {
+  methods: (_methods = {
     addfile: function () {
       var _addfile = _asyncToGenerator( /*#__PURE__*/_babel_runtime_regenerator__WEBPACK_IMPORTED_MODULE_0___default.a.mark(function _callee(file) {
         return _babel_runtime_regenerator__WEBPACK_IMPORTED_MODULE_0___default.a.wrap(function _callee$(_context) {
@@ -2246,20 +2268,91 @@ function _asyncToGenerator(fn) { return function () { var self = this, args = ar
         product.append("product_variant_prices[]", JSON.stringify(this.product_variant_prices[_x3]));
       }
 
-      axios.post("/product", product).then(function (response) {
-        console.log(response.data);
+      if (this.mode === "create") {
+        axios.post("/product", product).then(function (response) {
+          console.log(response.data);
 
-        if (response.data.message == "Product added successfully") {
-          window.location.href = "/product";
-        }
-      })["catch"](function (error) {
-        _this2.errors = error.response.data.errors;
-      });
-      console.log(product);
+          if (response.data.message == "Product added successfully") {
+            window.location.href = "/product";
+          }
+        })["catch"](function (error) {
+          _this2.errors = error.response.data.errors;
+        });
+      } else if (this.mode === "edit") {
+        var _this$product4;
+
+        // Send a PUT request to update an existing resource
+        axios.post("/update-product/" + ((_this$product4 = this.product) === null || _this$product4 === void 0 ? void 0 : _this$product4.id), product).then(function (response) {
+          console.log(response.data);
+
+          if (response.data.message == "Product updated successfully") {
+            window.location.href = "/product";
+          }
+        })["catch"](function (error) {
+          console.log(error);
+          _this2.errors = error.response.data.errors;
+        });
+      }
     }
-  },
+  }, _defineProperty(_methods, "checkVariant", function checkVariant() {
+    var _this3 = this;
+
+    var tags = [];
+    this.product_variant_prices = [];
+    this.product_variant.filter(function (item) {
+      tags.push(item.tags);
+    });
+    this.getCombn(tags).forEach(function (item) {
+      _this3.product_variant_prices.push({
+        title: item,
+        price: 0,
+        stock: 0
+      });
+    });
+    this.loadPrices();
+  }), _defineProperty(_methods, "loadProductVariant", function loadProductVariant() {
+    var _this4 = this;
+
+    var update;
+    this.product.product_variants.forEach(function (item, index) {
+      _this4.product_variant && _this4.product_variant.forEach(function (item2, index2) {
+        if (item2.option == item.variant_id) {
+          item2.tags.push(item.variant);
+          update = true;
+          return;
+        }
+      });
+
+      if (!update) {
+        _this4.product_variant.push({
+          option: item.variant_id,
+          tags: [item.variant]
+        });
+      } // console.log(this.product_variant[index])
+
+    });
+    console.log(this.product_variant);
+  }), _defineProperty(_methods, "loadPrices", function loadPrices() {
+    var _this5 = this;
+
+    this.product.prices.forEach(function (item, index) {
+      if (_this5.product_variant_prices[index]) {
+        _this5.product_variant_prices[index].price = item.price;
+        _this5.product_variant_prices[index].stock = item.stock;
+      }
+    });
+  }), _defineProperty(_methods, "redirectToProduct", function redirectToProduct() {
+    window.location.href = "/product";
+  }), _methods),
   mounted: function mounted() {
     console.log("Component mounted.");
+    console.log(this.product);
+
+    if (this.mode == "edit") {
+      this.loadProductVariant();
+      this.checkVariant();
+      this.loadPrices();
+    }
   }
 });
 
@@ -51727,13 +51820,23 @@ var render = function() {
         attrs: { type: "submit" },
         on: { click: _vm.saveProduct }
       },
-      [_vm._v("\n        Save\n    ")]
+      [
+        _vm._v(
+          "\n        " +
+            _vm._s(this.mode == "edit" ? "Update" : "Save") +
+            "\n    "
+        )
+      ]
     ),
     _vm._v(" "),
     _c(
       "button",
-      { staticClass: "btn btn-secondary btn-lg", attrs: { type: "button" } },
-      [_vm._v("Cancel")]
+      {
+        staticClass: "btn btn-secondary btn-lg",
+        attrs: { type: "button" },
+        on: { click: _vm.redirectToProduct }
+      },
+      [_vm._v("\n        Cancel\n    ")]
     )
   ])
 }
