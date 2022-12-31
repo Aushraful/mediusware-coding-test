@@ -30,4 +30,5 @@ Route::middleware('auth')->group(function () {
 
     // Product Filter
     Route::post('product/filter', 'ProductController@filter')->name('filter-products');
+    Route::post('update-product/{product}', 'ProductController@update');
 });

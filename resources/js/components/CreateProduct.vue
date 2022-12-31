@@ -172,9 +172,15 @@
             type="submit"
             class="btn btn-lg btn-primary"
         >
-            Save
+            {{ this.mode == "edit" ? "Update" : "Save" }}
         </button>
-        <button type="button" class="btn btn-secondary btn-lg">Cancel</button>
+        <button
+            type="button"
+            class="btn btn-secondary btn-lg"
+            @click="redirectToProduct"
+        >
+            Cancel
+        </button>
     </section>
 </template>
 
@@ -192,13 +198,20 @@ export default {
         variants: {
             type: Array,
             required: true
+        },
+        mode: {
+            type: String, // specify the type of the prop
+            default: "create" // set a default value
+        },
+        product: {
+            type: Object
         }
     },
     data() {
         return {
-            product_name: "",
-            product_sku: "",
-            description: "",
+            product_name: this.product?.title ?? "",
+            product_sku: this.product?.sku ?? "",
+            description: this.product?.description ?? "",
             images: [],
             product_variant: [
                 {
@@ -213,7 +226,8 @@ export default {
                 maxFilesize: 0.5,
                 headers: { "My-Awesome-Header": "header value" }
             },
-            errors: {}
+            errors: {},
+            resource: {}
         };
     },
     methods: {
@@ -291,23 +305,99 @@ export default {
                 );
             }
 
-            axios
-                .post("/product", product)
-                .then(response => {
-                    console.log(response.data);
-                    if (response.data.message == "Product added successfully") {
-                        window.location.href = "/product";
-                    }
-                })
-                .catch(error => {
-                    this.errors = error.response.data.errors;
-                });
+            if (this.mode === "create") {
+                axios
+                    .post("/product", product)
+                    .then(response => {
+                        console.log(response.data);
+                        if (
+                            response.data.message ==
+                            "Product added successfully"
+                        ) {
+                            window.location.href = "/product";
+                        }
+                    })
+                    .catch(error => {
+                        this.errors = error.response.data.errors;
+                    });
+            } else if (this.mode === "edit") {
+                // Send a PUT request to update an existing resource
+                axios
+                    .post("/update-product/" + this.product?.id, product)
+                    .then(response => {
+                        console.log(response.data);
+                        if (
+                            response.data.message ==
+                            "Product updated successfully"
+                        ) {
+                            window.location.href = "/product";
+                        }
+                    })
+                    .catch(error => {
+                        console.log(error);
+                        this.errors = error.response.data.errors;
+                    });
+            }
+        },
 
-            console.log(product);
+        // check the variant and render all the combination
+        checkVariant() {
+            let tags = [];
+            this.product_variant_prices = [];
+            this.product_variant.filter(item => {
+                tags.push(item.tags);
+            });
+
+            this.getCombn(tags).forEach(item => {
+                this.product_variant_prices.push({
+                    title: item,
+                    price: 0,
+                    stock: 0
+                });
+            });
+            this.loadPrices();
+        },
+        loadProductVariant() {
+            let update;
+            this.product.product_variants.forEach((item, index) => {
+                this.product_variant &&
+                    this.product_variant.forEach((item2, index2) => {
+                        if (item2.option == item.variant_id) {
+                            item2.tags.push(item.variant);
+                            update = true;
+                            return;
+                        }
+                    });
+                if (!update) {
+                    this.product_variant.push({
+                        option: item.variant_id,
+                        tags: [item.variant]
+                    });
+                }
+                // console.log(this.product_variant[index])
+            });
+            console.log(this.product_variant);
+        },
+        loadPrices() {
+            this.product.prices.forEach((item, index) => {
+                if (this.product_variant_prices[index]) {
+                    this.product_variant_prices[index].price = item.price;
+                    this.product_variant_prices[index].stock = item.stock;
+                }
+            });
+        },
+        redirectToProduct() {
+            window.location.href = "/product";
         }
     },
     mounted() {
         console.log("Component mounted.");
+        console.log(this.product);
+        if (this.mode == "edit") {
+            this.loadProductVariant();
+            this.checkVariant();
+            this.loadPrices();
+        }
     }
 };
 </script>

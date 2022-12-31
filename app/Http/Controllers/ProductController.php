@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Product\ProductCreateRequest;
+use App\Http\Requests\Product\ProductUpdateRequest;
 use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\ProductVariant;
@@ -9,6 +11,7 @@ use App\Models\ProductVariantPrice;
 use App\Models\Variant;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Validator;
 
 class ProductController extends Controller
@@ -108,26 +111,9 @@ class ProductController extends Controller
      * @param \Illuminate\Http\Request $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function store(Request $request)
+    public function store(ProductCreateRequest $request)
     {
         try {
-            // return $request->all();
-
-            // Validate the request data
-            $validator = Validator::make($request->all(), [
-                'title' => 'required|max:255',
-                'sku' => 'required|unique:products|max:255',
-                'description' => 'sometimes|string',
-                'product_image' => 'required|array|min:1',
-                'product_image.*' => 'required|file',
-                'product_variant' => 'sometimes|array|min:1',
-                'product_variant_prices' => 'required_if:product_variant,present|array|min:1',
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json(['errors' => $validator->errors()], 422);
-            }
-
             // Create a new product
             // return response()->json(['success' => ['message' => $request->all()]], 201);
             $product = Product::create([
@@ -136,7 +122,106 @@ class ProductController extends Controller
                 'description' => $request->description,
             ]);
 
-            // Save the product images to the database
+            // Delete the existing product images, if any
+            // Save the new product images to the database, if any are provided
+            self::handleProductImages($request, $product);
+
+            // Delete the existing product variants, if any
+            // Save the new product variants to the database, if any are provided
+            self::handlePproductVariants($request, $product);
+
+            // // Delete the existing product variant prices, if any
+            // // Save the new product variant prices to the database, if any are provided
+            self::handleProductVariantPrices($request, $product);
+
+            return response()->json(['message' => 'Product added successfully'], 200);
+        } catch (\Exception $e) {
+
+            return $e->getMessage();
+        }
+
+        return response()->json(['message' => 'Something Went Wrong!'], 500);
+    }
+
+
+    /**
+     * Display the specified resource.
+     *
+     * @param \App\Models\Product $product
+     * @return \Illuminate\Http\Response
+     */
+    public function show($product)
+    {
+    }
+
+    /**
+     * Show the form for editing the specified resource.
+     *
+     * @param \App\Models\Product $product
+     * @return \Illuminate\Http\Response
+     */
+    public function edit(Product $product)
+    {
+        $data['product'] = Product::with(['prices', 'product_variants'])->find($product->id);
+        $data['variants'] = Variant::all();
+        return view('products.edit', $data);
+    }
+
+    /**
+     * Update the specified resource in storage.
+     *
+     * @param \Illuminate\Http\Request $request
+     * @param \App\Models\Product $product
+     * @return \Illuminate\Http\Response
+     */
+    public function update(ProductUpdateRequest $request, Product $product)
+    {
+        try {
+            // Update the product attributes
+            $product->title = $request->title;
+            $product->sku = $request->sku;
+            $product->description = $request->description;
+            $product->save();
+
+            // Delete the existing product images, if any
+            // Save the new product images to the database, if any are provided
+            self::handleProductImages($request, $product);
+
+            // Delete the existing product variants, if any
+            // Save the new product variants to the database, if any are provided
+            self::handlePproductVariants($request, $product);
+
+            // // Delete the existing product variant prices, if any
+            // // Save the new product variant prices to the database, if any are provided
+            self::handleProductVariantPrices($request, $product);
+
+            return response()->json(['message' => 'Product updated successfully'], 200);
+        } catch (\Exception $e) {
+
+            return $e->getMessage();
+        }
+
+        return response()->json(['message' => 'Something Went Wrong!'], 500);
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     *
+     * @param \App\Models\Product $product
+     * @return \Illuminate\Http\Response
+     */
+    public function destroy(Product $product)
+    {
+        //
+    }
+
+    public function handleProductImages($request, $product)
+    {
+        // Delete the existing product images, if any
+        $product->productImages()->delete();
+
+        // Save the new product images to the database, if any are provided
+        if ($request->has('product_image')) {
             $productImages = [];
             foreach ($request->product_image as $image) {
                 $filename = time() . '-' . uniqid() . '.' . $image->getClientOriginalExtension();
@@ -147,7 +232,16 @@ class ProductController extends Controller
                 ]);
             }
             $product->productImages()->saveMany($productImages);
+        }
+    }
 
+    public function handlePproductVariants($request, $product)
+    {
+        // Delete the existing product variants, if any
+        $product->product_variants()->delete();
+
+        // Save the new product variants to the database, if any are provided
+        if ($request->has('product_variant')) {
             $product_variant = new ProductVariant();
             foreach ($request->product_variant as $variant) {
                 $variant = json_decode($variant);
@@ -157,8 +251,16 @@ class ProductController extends Controller
                     ]);
                 }
             }
+        }
+    }
 
-            // Save the product variant prices to the database
+    public function handleProductVariantPrices($request, $product)
+    {
+        // Delete the existing product variant prices, if any
+        $product->prices()->delete();
+
+        // Save the new product variant prices to the database, if any are provided
+        if ($request->has('product_variant_prices')) {
             foreach ($request->product_variant_prices as $price) {
                 $price = json_decode($price);
                 $attrs = explode("/", $price->title);
@@ -182,63 +284,6 @@ class ProductController extends Controller
                     'stock' => $price->stock,
                 ]);
             }
-
-            return response()->json(['message' => 'Product added successfully'], 200);
-        } catch (Exception $e) {
-
-            return response($e, 500);
         }
-
-        return response()
-            ->json([
-                'code'      =>  500,
-                'message'   =>  'Something Went Wrong!'
-            ], 500);
-    }
-
-
-    /**
-     * Display the specified resource.
-     *
-     * @param \App\Models\Product $product
-     * @return \Illuminate\Http\Response
-     */
-    public function show($product)
-    {
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param \App\Models\Product $product
-     * @return \Illuminate\Http\Response
-     */
-    public function edit(Product $product)
-    {
-        $variants = Variant::all();
-        return view('products.edit', compact('variants'));
-    }
-
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param \Illuminate\Http\Request $request
-     * @param \App\Models\Product $product
-     * @return \Illuminate\Http\Response
-     */
-    public function update(Request $request, Product $product)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param \App\Models\Product $product
-     * @return \Illuminate\Http\Response
-     */
-    public function destroy(Product $product)
-    {
-        //
     }
 }
